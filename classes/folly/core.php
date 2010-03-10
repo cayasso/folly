@@ -6,7 +6,7 @@ abstract class Folly_Core
 	/**
 	 * @var  Jelly_Model	The Jelly model that Folly object uses
 	 */
-	protected $_model;
+	private $_model;
 	
 	/**
 	 * @var  array			Collection of Jelly fields used in this form
@@ -21,12 +21,17 @@ abstract class Folly_Core
 		);
 	
 	/**
+	 * @var  string			View file used to render this form
+	 */
+	public $form_view = 'folly/form';
+	
+	/**
 	 * Factory for instantiating a Folly object.
 	 * 
 	 * $model can be a Jelly model or a model's name.
-	 * $attributes are the form's attributes. If it's
-	 * a string, it's taken as the form's action attribute.
-	 * If $fields is passed, form contains only the fields
+	 * $key is either the primary key or an array of search
+	 * conditions, used when fetching a record via Folly.
+	 * If $fields is passed, form contains only fields found
 	 * in that array, in that order.
 	 *
 	 * @param   mixed  $model
@@ -34,22 +39,45 @@ abstract class Folly_Core
 	 * @param   array  $fields
 	 * @return  Folly
 	 */
-	public static function factory($model, $attributes = NULL, array $fields = NULL)
+	public static function factory($model, $key = NULL, array $fields = NULL)
 	{
-		return new Folly($model, $attributes, $fields);
+		return new Folly($model, $key, $fields);
 	}
 	
 	/**
 	 * Folly constructor method.
 	 *
 	 * @param   mixed  $model
-	 * @param   mixed  $attributes
+	 * @param   mixed  $key
 	 * @param   array  $fields
 	 */
-	public function __construct(& $model, $attributes, array $fields = NULL)
+	public function __construct(& $model, $key = NULL, array $fields = NULL)
 	{
-		$this->_model = $model instanceof Jelly_Model ? $model : Jelly::factory($model);
-		
+		if($model instanceof Jelly_Model)
+		{
+			$this->_model = $model;
+		}
+		else
+		{
+			if($key === NULL)
+			{
+				$this->_model = Jelly::factory($model);
+			}
+			else if(is_array($key))
+			{
+				$query = Jelly::select($model);
+				foreach($key as $key => $value)
+				{
+					$query->where($key, '=', $value);
+				}
+				$this->_model = $query->limit(1)->execute();
+			}
+			else
+			{
+				$this->_model = Jelly::select($model, $key);
+			}
+		}
+				
 		foreach($this->_model->meta()->fields() as $field)
 		{
 			if(!$field instanceof Field_Primary)
@@ -71,14 +99,6 @@ abstract class Folly_Core
 		
 		$this->attrs('name', $this->_model->meta()->model());
 		
-		if(is_array($attributes))
-		{
-			$this->_attributes = $attributes;
-		}
-		else if(is_string($attributes))
-		{
-			$this->_attributes['action'] = $attributes;
-		}		
 	}	
 	
 	/**
@@ -101,6 +121,17 @@ abstract class Folly_Core
 	 * @return  Folly_Element
 	 */
 	public function __get($name)
+	{
+		return $this->get($name);
+	}
+	
+	/**
+	 * Returns a field from the _fields array
+	 *
+	 * @param   string   		$name
+	 * @return  Folly_Element
+	 */
+	public function get($name)
 	{
 		foreach($this->_fields as $field)
 		{
@@ -162,7 +193,7 @@ abstract class Folly_Core
 	 */
 	public function render($display = TRUE)
 	{
-		$result = View::factory('folly/form')
+		$result = View::factory($this->form_view)
 			->set('action', $this->attrs('action'))
 			->set('attributes', $this->attrs())
 			->set('fields', $this->_fields);
@@ -186,20 +217,7 @@ abstract class Folly_Core
 	{
 		return $this->_model;
 	}
-	
-	/**
-	 * Loads a Jelly model using primary key $key using Jelly's set() method.
-	 *
-	 * @param   mixed    $key
-	 * @return  $this
-	 */
-	public function load($key)
-	{
-		$this->_model->set(Jelly::select($this->attrs('name'), $key)->as_array());
 		
-		return $this;
-	}
-	
 	/**
 	 * Loads an array of values into the associated Jelly object using it's set() method.
 	 *
@@ -215,7 +233,6 @@ abstract class Folly_Core
 		return $this;
 	}
 	
-
 	/**
 	 * Saves the associated Jelly model using it's save() method.
 	 *
@@ -223,7 +240,17 @@ abstract class Folly_Core
 	 */
 	public function save()
 	{
-		$this->_model->save();
+		try
+		{
+			$this->_model->save();
+		}
+		catch(Validate_Exception $e)
+		{
+			foreach($e->array->errors('validate') as $field => $error)
+			{				
+				$this->get($field)->error($error);				
+			}
+		}
 		return $this;
 	}
 }
