@@ -3,8 +3,19 @@
 abstract class Folly_Core
 {
 	
-	private $_model;
-	private $_fields;
+	/**
+	 * @var  Jelly_Model	The Jelly model that Folly object uses
+	 */
+	protected $_model;
+	
+	/**
+	 * @var  array			Collection of Jelly fields used in this form
+	 */
+	private $_fields = array();
+	
+	/**
+	 * @var  array			Array of form's attributes (action, method etc.)
+	 */
 	private $_attributes = array(
 		'action' => NULL,
 		);
@@ -117,7 +128,7 @@ abstract class Folly_Core
 	}
 	
 	/**
-	 * Setter / getter for form's attributes
+	 * Setter / getter for form's attributes.
 	 *
 	 * @param   string   $key
 	 * @param   string   $value
@@ -125,7 +136,7 @@ abstract class Folly_Core
 	 */
 	public function attrs($key = NULL, $value = NULL)
 	{
-		if($key === NULL)
+		if($key === NULL AND $value === NULL)
 		{
 			return $this->_attributes;
 		}
