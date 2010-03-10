@@ -61,7 +61,7 @@ abstract class Folly_Element_Core
 	 * Renders the field using a view.
 	 *
 	 * @param   bool    $display
-	 * @return  html form
+	 * @return  View
 	 */
 	public function render($display = TRUE)
 	{
@@ -102,9 +102,9 @@ abstract class Folly_Element_Core
 	 */
 	public function attrs($key = NULL, $value = NULL)
 	{		
-		if($key === 'label')
+		if(property_exists($this->_field, $key))
 		{
-			$this->_field->label = $value;
+			$this->_field->$key = $value;
 		}
 		else
 		{

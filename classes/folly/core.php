@@ -189,7 +189,7 @@ abstract class Folly_Core
 	 * Renders the form using a view.
 	 *
 	 * @param   bool    $display
-	 * @return  html form
+	 * @return  View
 	 */
 	public function render($display = TRUE)
 	{
@@ -211,7 +211,7 @@ abstract class Folly_Core
 	/**
 	 * Returns the associated Jelly model
 	 *
-	 * @return  Jelly_Model	$model
+	 * @return  Jelly_Model
 	 */
 	public function model()
 	{
