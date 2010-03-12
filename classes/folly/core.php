@@ -32,23 +32,31 @@ abstract class Folly_Core
 	 * Factory for instantiating a Folly object.
 	 *
 	 * @param   mixed  $name
+	 * @param   string $action
 	 * @param   array  $attributes
 	 * @return  Folly
 	 */
-	public static function factory($name, array $attributes = NULL)
+	public static function factory($name, $action = NULL, array $attributes = NULL)
 	{
-		return new Folly($name, $attributes);
+		return new Folly($name, $action, $attributes);
 	}
 	
 	/**
 	 * Folly constructor method.
 	 *
 	 * @param   mixed  $name
+	 * @param   string $action
 	 * @param   array  $attributes
 	 */
-	public function __construct($name, array $attributes = NULL)
+	public function __construct($name, $action = NULL,  array $attributes = NULL)
 	{		
 		$this->attrs('name', $name);
+		
+		if($action !== NULL)
+		{
+			$this->action = $action;
+		}
+		
 		if(is_array($attributes))
 		{
 			$this->attributes = array_merge($this->attributes, $attributes);
