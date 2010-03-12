@@ -98,8 +98,8 @@ abstract class Folly_Element_Core
 	public function render($display = TRUE)
 	{
 		$result = View::factory($this->element_view)
-			->set('name', $this->field()->name)
-			->set('label', $this->field()->label)
+			->set('name', $this->name)
+			->set('label', $this->label)
 			->set('field', $this->field())
 			->set('attributes', $this->attributes)
 			->set('errors', count($this->errors) ? $this->errors(): NULL);
@@ -133,17 +133,39 @@ abstract class Folly_Element_Core
 	 * @param   string   $value
 	 * @return  $this
 	 */
-	public function set($name, $value)
+	protected function set($name, $value)
+	{
+			$this->attrs($name, $value);
+		return $this;
+	}
+	
+	/**
+	 * Allows getting field attributes
+	 *
+	 * @param   string   $name
+	 * @return  $this
+	 */
+	public function __get($name)
+	{
+		return $this->get($name);
+	}
+	
+	/**
+	 * Allows getting field properties / attributes
+	 *
+	 * @param   string   $name
+	 * @return  $this
+	 */
+	public function get($name)
 	{
 		if(property_exists($this, $name))
 		{
-			$this->$name = $value;
+			return $this->$name;
 		}
 		else
 		{
-			$this->attrs($name, $value);
+			return $this->attrs($name);
 		}		
-		return $this;
 	}
 	
 	/**

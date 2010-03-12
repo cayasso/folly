@@ -65,19 +65,12 @@ abstract class Folly_Core
 	*/	
 	public function __set($name, $value)
 	{
-		if($element = $this->element($name))
-		{
-			$element->set('value', $value);
-		}
-		else
-		{
-			$this->set($name, $value);
-		}
+		$this->set($name, $value);
 		return $this;
 	}	
 	
 	/**
-	 * Allows setting element's value
+	 * Allows setting element's value or form's attributes
 	 * 
 	 * @param   string   $name
 	 * @param   string   $value
@@ -85,12 +78,19 @@ abstract class Folly_Core
 	 */
 	public function set($name, $value)
 	{
-		$this->attrs($name, $value);
+		if($element = $this->element($name))
+		{
+			$element->set('value', $value);
+		}
+		else
+		{
+			$this->attrs($name, $value);
+		}
 		return $this;
 	}
 	
 	/**
-	 * Returns an element
+	 * Returns an element or false if not found
 	 *
 	 * @param   string   		$name
 	 * @return  mixed
