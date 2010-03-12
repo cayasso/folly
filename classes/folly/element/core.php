@@ -8,17 +8,17 @@ abstract class Folly_Element_Core
 	protected $errors = array();	
 	
 	/**
-	 * @var  string			Name of this field
+	 * @var  string			Name of this element
 	 */
 	protected $name;
 	
 	/**
-	 * @var  string			Value of this field
+	 * @var  string			Value of this element's field
 	 */
 	public $value;
 	
 	/**
-	 * @var  string			Label of this field
+	 * @var  string			Label for this element
 	 */
 	public $label;
 	
@@ -59,9 +59,9 @@ abstract class Folly_Element_Core
 	}
 		
 	/**
-	 * Renders the field
+	 * Renders the element
 	 *
-	 * @return  html field
+	 * @return  html element
 	 */
 	
 	public function __toString()
@@ -115,7 +115,7 @@ abstract class Folly_Element_Core
 	}
 	
 	/**
-	 * Allows setting field properties / attributes using an assignment
+	 * Allows setting field attributes using an assignment
 	 *
 	 * @param   string   $name
 	 * @param   string   $value
@@ -127,7 +127,7 @@ abstract class Folly_Element_Core
 	}
 	
 	/**
-	 * Allows setting field properties / attributes
+	 * Allows setting field attributes
 	 *
 	 * @param   string   $name
 	 * @param   string   $value
@@ -135,7 +135,7 @@ abstract class Folly_Element_Core
 	 */
 	protected function set($name, $value)
 	{
-			$this->attrs($name, $value);
+		$this->attrs($name, $value);
 		return $this;
 	}
 	
@@ -203,7 +203,7 @@ abstract class Folly_Element_Core
 	}
 	
 	/**
-	 * Method for adding errors to the field
+	 * Method for adding errors to the element
 	 *
 	 * @param   string   $message
 	 * @return  $this
@@ -215,7 +215,7 @@ abstract class Folly_Element_Core
 	}
 	
 	/**
-	 * Renders the field's errors using a view
+	 * Renders the element's errors using a view
 	 *
 	 * @return  View
 	 */
