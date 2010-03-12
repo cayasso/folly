@@ -57,7 +57,7 @@ abstract class Folly_Core
 	
 	
 	/**
-	 * Allows setting element's value using assignment
+	 * Allows setting element's attributes using assignment
 	 *
 	 * @param   string   $name
 	 * @param   string   $value
@@ -78,7 +78,7 @@ abstract class Folly_Core
 	 */
 	public function set($name, $value)
 	{
-		$this->element($name, $value);
+		$this->attrs($name, $value);
 		return $this;
 	}
 	
