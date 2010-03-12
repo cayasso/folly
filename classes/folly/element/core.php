@@ -1,29 +1,39 @@
 <?php defined('SYSPATH') or die('No direct script access.');
 
 abstract class Folly_Element_Core
-{	
-	/**
-	 * @var  Jelly_Model	The Jelly model that Folly_Element object is connected to
-	 */
-	protected $_model;
-	
-	/**
-	 * @var  Jelly_Field	The Jelly field that this element object uses
-	 */
-	private $_field;
-	
+{		
 	/**
 	 * @var  array			Error messages from validation for this field
 	 */
-	private $_errors = array();	
+	protected $errors = array();	
 	
 	/**
 	 * @var  string			Name of this field
 	 */
-	public $name;
+	protected $name;
+	
+	/**
+	 * @var  string			Value of this field
+	 */
+	public $value;
+	
+	/**
+	 * @var  string			Label of this field
+	 */
+	public $label;
+	
+	/**
+	 * @var  array			An array of attributes
+	 */
+	protected $attributes = array();
 	
 	/**
 	 * @var  string			View file used to render this element
+	 */
+	public $element_view = 'folly/field';
+	
+	/**
+	 * @var  string			View file used to render this element's 'field' part
 	 */
 	public $field_view = 'folly/field';
 	
@@ -35,15 +45,17 @@ abstract class Folly_Element_Core
 	/**
 	 * Folly_Element constructor method.
 	 *
-	 * @param   mixed  $model
-	 * @param   mixed  $attributes
-	 * @param   array  $fields
+	 * @param   string $name
+	 * @param   array  $attributes
 	 */
-	public function __construct(Jelly_Field & $field = NULL, Jelly_Model & $model = NULL)
+	public function __construct($name, $attributes = NULL)
 	{
-		$this->_field = $field;
-		$this->_model = $model;
-		$this->name = $field->name;
+		$this->name = $name;
+		
+		if(is_array($attributes))
+		{
+			$this->attributes = array_merge($this->attributes, $attributes);
+		}
 	}
 		
 	/**
@@ -58,6 +70,26 @@ abstract class Folly_Element_Core
 	}
 	
 	/**
+	 * Gets the element's name
+	 *
+	 * @return  string
+	 */
+	public function name()
+	{
+		return $this->name;
+	}
+	
+	/**
+	 * Gets the field view object
+	 *
+	 * @return  View
+	 */
+	protected function field()
+	{
+		return View::factory($this->field_view, get_object_vars($this));
+	}
+	
+	/**
 	 * Renders the field using a view.
 	 *
 	 * @param   bool    $display
@@ -65,11 +97,12 @@ abstract class Folly_Element_Core
 	 */
 	public function render($display = TRUE)
 	{
-		$result = View::factory($this->field_view)
-			->set('name', $this->_field->name)
-			->set('label', $this->_field->label)
-			->set('field', $this->_model->input($this->_field->name))
-			->set('errors', count($this->_errors) ? $this->errors(): NULL);
+		$result = View::factory($this->element_view)
+			->set('name', $this->field()->name)
+			->set('label', $this->field()->label)
+			->set('field', $this->field())
+			->set('attributes', $this->attributes)
+			->set('errors', count($this->errors) ? $this->errors(): NULL);
 		
 		if($display === TRUE)
 		{
@@ -82,7 +115,7 @@ abstract class Folly_Element_Core
 	}
 	
 	/**
-	 * Allows setting field attributes using an assignment
+	 * Allows setting field properties / attributes using an assignment
 	 *
 	 * @param   string   $name
 	 * @param   string   $value
@@ -90,11 +123,31 @@ abstract class Folly_Element_Core
 	 */
 	public function __set($name, $value)
 	{
-		$this->attrs($name, $value);
+		$this->set($name, $value);
 	}
 	
 	/**
-	 * Setter for field's attributes
+	 * Allows setting field properties / attributes
+	 *
+	 * @param   string   $name
+	 * @param   string   $value
+	 * @return  $this
+	 */
+	public function set($name, $value)
+	{
+		if(property_exists($this, $name))
+		{
+			$this->$name = $value;
+		}
+		else
+		{
+			$this->attrs($name, $value);
+		}		
+		return $this;
+	}
+	
+	/**
+	 * Setter / getter for field's attributes
 	 *
 	 * @param   string   $key
 	 * @param   string   $value
@@ -102,13 +155,27 @@ abstract class Folly_Element_Core
 	 */
 	public function attrs($key = NULL, $value = NULL)
 	{		
-		if(property_exists($this->_field, $key))
+		if($key === NULL)
 		{
-			$this->_field->$key = $value;
+			return $this->attributes;
 		}
 		else
 		{
-			$this->_field->attributes[$key] = $value;
+			if($value === NULL)
+			{
+				return $this->attributes[$key];
+			}
+			else
+			{			
+				if(is_array($value))
+				{
+					$this->attributes[$key] = implode(' ', $value);
+				}
+				else
+				{
+					$this->attributes[$key] = $value;
+				}
+			}
 		}
 		return $this;
 	}
@@ -121,7 +188,7 @@ abstract class Folly_Element_Core
 	 */
 	public function error($message)
 	{		
-		$this->_errors[] = $message;
+		$this->errors[] = $message;
 		return $this;
 	}
 	
@@ -133,7 +200,7 @@ abstract class Folly_Element_Core
 	public function errors()
 	{		
 		return View::factory($this->error_view)
-			->set('errors', $this->_errors)
+			->set('errors', $this->errors)
 			->set('name', $this->name);
 	}
 }

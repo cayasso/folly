@@ -4,21 +4,24 @@ abstract class Folly_Core
 {
 	
 	/**
-	 * @var  Jelly_Model	The Jelly model that Folly object uses
+	 * @var  array			An array of Jelly model names that are used
 	 */
-	private $_model;
+	protected $models = array();
 	
 	/**
-	 * @var  array			Collection of Jelly fields used in this form
+	 * @var  array			Collection of Folly_Elements used in this form
 	 */
-	private $_fields = array();
+	protected $elements = array();
+	
+	/**
+	 * @var  string			Form's action attribute
+	 */
+	public $action;
 	
 	/**
 	 * @var  array			Array of form's attributes (action, method etc.)
 	 */
-	private $_attributes = array(
-		'action' => NULL,
-		);
+	protected $attributes = array();
 	
 	/**
 	 * @var  string			View file used to render this form
@@ -27,124 +30,96 @@ abstract class Folly_Core
 	
 	/**
 	 * Factory for instantiating a Folly object.
-	 * 
-	 * $model can be a Jelly model or a model's name.
-	 * $key is either the primary key or an array of search
-	 * conditions, used when fetching a record via Folly.
-	 * If $fields is passed, form contains only fields found
-	 * in that array, in that order.
 	 *
-	 * @param   mixed  $model
-	 * @param   mixed  $attributes
-	 * @param   array  $fields
+	 * @param   mixed  $name
+	 * @param   array  $attributes
 	 * @return  Folly
 	 */
-	public static function factory($model, $key = NULL, array $fields = NULL)
+	public static function factory($name, array $attributes = NULL)
 	{
-		return new Folly($model, $key, $fields);
+		return new Folly($name, $attributes);
 	}
 	
 	/**
 	 * Folly constructor method.
 	 *
-	 * @param   mixed  $model
-	 * @param   mixed  $key
-	 * @param   array  $fields
+	 * @param   mixed  $name
+	 * @param   array  $attributes
 	 */
-	public function __construct(& $model, $key = NULL, array $fields = NULL)
-	{
-		if($model instanceof Jelly_Model)
+	public function __construct($name, array $attributes = NULL)
+	{		
+		$this->attrs('name', $name);
+		if(is_array($attributes))
 		{
-			$this->_model = $model;
-		}
-		else
-		{
-			if($key === NULL)
-			{
-				$this->_model = Jelly::factory($model);
-			}
-			else if(is_array($key))
-			{
-				$query = Jelly::select($model);
-				foreach($key as $key => $value)
-				{
-					$query->where($key, '=', $value);
-				}
-				$this->_model = $query->limit(1)->execute();
-			}
-			else
-			{
-				$this->_model = Jelly::select($model, $key);
-			}
-		}
-				
-		foreach($this->_model->meta()->fields() as $field)
-		{
-			if(!$field instanceof Field_Primary)
-			{
-				if(is_array($fields))
-				{
-					if(in_array($field->name, $fields))
-					{
-						$key = array_search($field->name, $fields);
-						$this->_fields[$key] = new Folly_Element($field, $this->_model);
-					}
-				}
-				else
-				{
-					$this->_fields[] = new Folly_Element($field, $this->_model);
-				}
-			}
-		}
-		
-		$this->attrs('name', $this->_model->meta()->model());
-		
+			$this->attributes = array_merge($this->attributes, $attributes);
+		}		
 	}	
 	
+	
 	/**
-	 * Allows setting field values using an assignment
+	 * Allows setting element's value using assignment
 	 *
 	 * @param   string   $name
 	 * @param   string   $value
 	 * @return  $this
-	 */
+	*/	
 	public function __set($name, $value)
 	{
-		$this->_model->__set($name, $value);
+		$this->set($name, $value);
+		return $this;
+	}	
+	
+	/**
+	 * Allows setting element's value
+	 * 
+	 * @param   string   $name
+	 * @param   string   $value
+	 * @return  $this
+	 */
+	public function set($name, $value)
+	{
+		$this->element($name, $value);
 		return $this;
 	}
 	
 	/**
-	 * Returns a field from the _fields array
+	 * Returns an element
 	 *
 	 * @param   string   		$name
-	 * @return  Folly_Element
+	 * @return  mixed
 	 */
 	public function __get($name)
 	{
-		return $this->get($name);
+		return $this->element($name);
 	}
-	
+		
 	/**
-	 * Returns a field from the _fields array
-	 *
+	 * Setter / getter for the _elements array
+	 * 
 	 * @param   string   		$name
-	 * @return  Folly_Element
+	 * @param   mixed   		$value
+	 * @return  mixed
 	 */
-	public function get($name)
+	public function element($name, $value = NULL)
 	{
-		foreach($this->_fields as $field)
+		if($value === NULL)
 		{
-			if($field->name === $name) $found = $field;
-		}
-		if(empty($found))
-		{
-			throw new Kohana_Exception('No field by the name of `'.$name.'` was found.');
+			// Find and return an element by it's name			
+			foreach($this->elements as $element)
+			{
+				if($element->name() === $name) return $element;
+			}
+			return FALSE;
 		}
 		else
 		{
-			return $found;
-		}		
+			// Set a element's value if it's found
+			if($element = $this->element($name))
+			{
+				$element->set($name, $value);				
+			}			
+		}
+		return $this;		
 	}
 	
 	/**
@@ -167,20 +142,52 @@ abstract class Folly_Core
 	 */
 	public function attrs($key = NULL, $value = NULL)
 	{
-		if($key === NULL AND $value === NULL)
+		if($key === NULL)
 		{
-			return $this->_attributes;
+			// Just return the attributes array
+			return $this->attributes;
 		}
 		else
 		{
-			if($value !== NULL)
+			if($value === NULL)
 			{
-				$this->_attributes[$key] = $value;
+				// Return a certain attribute's value
+				return $this->attributes[$key];
 			}
 			else
-			{
-				return $this->_attributes[$key];
+			{			
+				if(is_array($value))
+				{
+					// Ensure Form::open() works
+					$this->attributes[$key] = implode(' ', $value);
+				}
+				else
+				{
+					// Set an attribute's value
+					$this->attributes[$key] = $value;
+				}
 			}
+		}
+		return $this;
+	}
+	
+	/**
+	 * Setter / getter for form's action
+	 *
+	 * @param   string   $action
+	 * @return  $this
+	 */
+	public function action($action = NULL)
+	{
+		if($action === NULL)
+		{
+			// Return form's action
+			return $this->action;
+		}
+		else
+		{
+			// Set form's action
+			$this->action = $action;
 		}
 		return $this;
 	}
@@ -194,9 +201,9 @@ abstract class Folly_Core
 	public function render($display = TRUE)
 	{
 		$result = View::factory($this->form_view)
-			->set('action', $this->attrs('action'))
+			->set('action', $this->action)
 			->set('attributes', $this->attrs())
-			->set('fields', $this->_fields);
+			->set('elements', $this->elements);
 			
 		if($display === TRUE)
 		{
@@ -209,27 +216,97 @@ abstract class Folly_Core
 	}
 	
 	/**
-	 * Returns the associated Jelly model
+	 * Getter / setter of associated Jelly model(s)
+	 * 
+	 * Whenever a new model is added (by passing either a
+	 * Jelly_Model object, or a model name that's not already
+	 * added, or an array(model_name, primary_key))
+	 * the model's fields are added into the _elements array.
+	 * 
+	 * If $fields array is passed, only the fields found in
+	 * that array are added, in that order.
 	 *
-	 * @return  Jelly_Model
+	 * @param   mixed		$model
+	 * @param   array		$fields
+	 * @return  $this
 	 */
-	public function model()
+	public function model($model, array $fields = NULL)
 	{
-		return $this->_model;
+		if(in_array($model, $this->models))
+		{			
+			// Find a model used by at least one of the elements
+			
+			foreach($this->elements as $element)
+			{
+				if($element instanceof Folly_Element_Jelly)
+				{
+					if($element->model(TRUE) === $model)
+					{
+						return $element->model();
+					}
+				}
+			}
+			return FALSE;
+		}
+		else
+		{
+			if($model instanceof Jelly_Model)
+			{
+				$name = Jelly::model_name($model);
+			}
+			else if(is_array($model))
+			{
+				// Instantiate a Jelly model using a primary key
+				list($name, $key) = $model;
+				$model = Jelly::select($name, $key);
+			}
+			else
+			{
+				// Instantiate an 'empty' Jelly model
+				$name = $model;
+				$model = Jelly::factory($model);
+			}
+			
+			// Add model's name to array of associated models			
+			$this->models[] = $name;
+			
+			// Loop through model's fields and add them to the form as necessary
+			foreach($model->meta()->fields() as $field)
+			{
+				// Skip fields that have their render property set to false
+				if(!isset($field->hide))
+				{
+					if(is_array($fields))
+					{
+						// If only certain fields are wanted to be added, filter them here
+						if(in_array($field->name, $fields))
+						{
+							$key = array_search($field->name, $fields) + count($this->elements);
+							$this->elements[$key] = new Folly_Element_Jelly($field->name, $model);
+						}
+					}
+					else
+					{
+						$this->elements[] = new Folly_Element_Jelly($field->name, $model);
+					}
+				}
+			}
+		}
+		return $this;
 	}
 		
 	/**
 	 * Loads an array of values into the associated Jelly object using it's set() method.
-	 *
-	 * This should only be used for setting from database results 
-	 * since the model declares itself as saved and loaded after.
 	 *
 	 * @param   array    $values
 	 * @return  $this
 	 */
 	public function values(array $values)
 	{
-		$this->_model->set($values);
+		foreach($this->models as $model)
+		{
+			$this->model($model)->set($values);
+		}		
 		return $this;
 	}
 	
@@ -240,15 +317,18 @@ abstract class Folly_Core
 	 */
 	public function save()
 	{
-		try
+		foreach($this->models as $model)
 		{
-			$this->_model->save();
-		}
-		catch(Validate_Exception $e)
-		{
-			foreach($e->array->errors('validate') as $field => $error)
-			{				
-				$this->get($field)->error($error);				
+			try
+			{
+				$this->model($model)->save();
+			}
+			catch(Validate_Exception $e)
+			{
+				foreach($e->array->errors('validate') as $element => $error)
+				{				
+					$this->element($element)->error($error);				
+				}
 			}
 		}
 		return $this;
